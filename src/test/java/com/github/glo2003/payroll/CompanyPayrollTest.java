@@ -1,5 +1,10 @@
 package com.github.glo2003.payroll;
 
+import com.github.glo2003.payroll.employees.Employee;
+import com.github.glo2003.payroll.employees.HourlyEmployee;
+import com.github.glo2003.payroll.employees.SalariedEmployee;
+import com.github.glo2003.payroll.exceptions.EmployeeDoesNotWorkHereException;
+import com.github.glo2003.payroll.exceptions.InvalidRaiseException;
 import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,15 +37,15 @@ class CompanyPayrollTest {
     @BeforeEach
     void setUp() {
         company = new CompanyPayroll();
-        vp = new HourlyEmployee("Alice", "vp", 25, 100, 35.5f * 2);
-        eng = new SalariedEmployee("Bob", "engineer", 4, 1500);
-        manager = new SalariedEmployee("Charlie", "manager", 10, 2000);
-        intern1 = new HourlyEmployee("Ernest", "intern", 10, 5, 50 * 2);
-        intern2 = new HourlyEmployee("Fred", "intern", 10, 5, 50 * 2);
+        vp = new HourlyEmployee("Alice", Role.VICE_PRESIDENT, 25, 100, 35.5f * 2);
+        eng = new SalariedEmployee("Bob", Role.ENGINEER, 4, 1500);
+        manager = new SalariedEmployee("Charlie", Role.MANAGER, 10, 2000);
+        intern1 = new HourlyEmployee("Ernest", Role.INTERN, 10, 5, 50 * 2);
+        intern2 = new HourlyEmployee("Fred", Role.INTERN, 10, 5, 50 * 2);
 
-        hourlyEmployee = new HourlyEmployee(HOURLY_NAME, "engineer", VACATION_DAYS, HOURLY_RATE, HOURLY_AMOUNT);
-        salariedEmployee = new SalariedEmployee(SALARIED_NAME, "engineer", VACATION_DAYS, BIWEEKLY_AMOUNT);
-        anotherSalariedEmployee = new SalariedEmployee("Yan", "manager", VACATION_DAYS, ANOTHER_BIWEEKLY_AMOUNT);
+        hourlyEmployee = new HourlyEmployee(HOURLY_NAME, Role.ENGINEER, VACATION_DAYS, HOURLY_RATE, HOURLY_AMOUNT);
+        salariedEmployee = new SalariedEmployee(SALARIED_NAME, Role.ENGINEER, VACATION_DAYS, BIWEEKLY_AMOUNT);
+        anotherSalariedEmployee = new SalariedEmployee("Yan", Role.MANAGER, VACATION_DAYS, ANOTHER_BIWEEKLY_AMOUNT);
     }
 
     @Test
@@ -139,7 +144,7 @@ class CompanyPayrollTest {
     }
 
     @Test
-    void giveRaiseToHourlyEmployee_shouldRaiseHourlySalary() {
+    void giveRaiseToHourlyEmployee_shouldRaiseHourlySalary() throws Exception {
         company.addEmployee(hourlyEmployee);
 
         company.giveRaise(hourlyEmployee, RAISE);
@@ -150,7 +155,7 @@ class CompanyPayrollTest {
     }
 
     @Test
-    void giveRaiseToSalariedEmployee_shouldRaiseMonthlySalary() {
+    void giveRaiseToSalariedEmployee_shouldRaiseMonthlySalary() throws Exception {
         company.addEmployee(salariedEmployee);
 
         company.giveRaise(salariedEmployee, RAISE);
@@ -164,19 +169,19 @@ class CompanyPayrollTest {
     void negativeRaise_shouldThrow() {
         company.addEmployee(eng);
 
-        Assert.assertThrows(RuntimeException.class, () -> company.giveRaise(eng, -1));
+        Assert.assertThrows(InvalidRaiseException.class, () -> company.giveRaise(eng, -1));
     }
 
     @Test
     void giveRaiseToAnAbsentEmployee_shouldThrow() {
-        Assert.assertThrows(RuntimeException.class, () -> company.giveRaise(eng, 10));
+        Assert.assertThrows(EmployeeDoesNotWorkHereException.class, () -> company.giveRaise(eng, 10));
     }
 
     @Test
-    void salariedPayoutHoliday_shouldPayOneWeek() {
+    void salariedPayoutHoliday_shouldPayOneWeek() throws Exception {
         company.addEmployee(salariedEmployee);
 
-        company.takeHoliday(salariedEmployee, true, null);
+        company.takePayout(salariedEmployee);
 
         Paycheck pending = company.getPendings().get(0);
         assertThat(pending.getAmount()).isEqualTo(BIWEEKLY_AMOUNT / 2);
@@ -185,21 +190,21 @@ class CompanyPayrollTest {
 
 
     @Test
-    void salariedHolidays_shouldRemovesVacantionDays() {
+    void salariedHolidays_shouldRemovesVacantionDays() throws Exception {
         company.addEmployee(salariedEmployee);
         int amount = 2;
 
-        company.takeHoliday(salariedEmployee, false, amount);
+        company.takeHoliday(salariedEmployee, amount);
 
         assertThat(company.getPendings()).hasSize(0);
         assertThat(salariedEmployee.getVacationDays()).isEqualTo(VACATION_DAYS - amount);
     }
 
     @Test
-    void hourlyPayoutHoliday_shouldPayOneWeek() {
+    void hourlyPayoutHoliday_shouldPayOneWeek() throws Exception {
         company.addEmployee(hourlyEmployee);
 
-        company.takeHoliday(hourlyEmployee, true, null);
+        company.takePayout(hourlyEmployee);
 
         Paycheck pending = company.getPendings().get(0);
         assertThat(pending.getAmount()).isEqualTo(HOURLY_AMOUNT * HOURLY_RATE / 2f);
@@ -208,11 +213,11 @@ class CompanyPayrollTest {
 
 
     @Test
-    void hourlyHolidays_shouldRemovesVacantionDays() {
+    void hourlyHolidays_shouldRemovesVacantionDays() throws Exception {
         company.addEmployee(hourlyEmployee);
         int amount = 2;
 
-        company.takeHoliday(hourlyEmployee, false, amount);
+        company.takeHoliday(hourlyEmployee, amount);
 
         assertThat(company.getPendings()).hasSize(0);
         assertThat(hourlyEmployee.getVacationDays()).isEqualTo(VACATION_DAYS - amount);
@@ -254,17 +259,17 @@ class CompanyPayrollTest {
     }
 
     @Test
-    void getNumberOfEmployeesInHolidays_shouldReturnNumberOfPeopleInHolidays() {
+    void getNumberOfEmployeesInHolidays_shouldReturnNumberOfPeopleInHolidays() throws Exception {
         company.addEmployee(vp);
         company.addEmployee(eng);
         company.addEmployee(manager);
         company.addEmployee(intern1);
         company.addEmployee(intern2);
 
-        company.takeHoliday(vp, false, 2);
-        company.takeHoliday(vp, false, 2);
-        company.takeHoliday(eng, false, 2);
-        company.takeHoliday(manager, false, 2);
+        company.takeHoliday(vp, 2);
+        company.takeHoliday(vp, 2);
+        company.takeHoliday(eng, 2);
+        company.takeHoliday(manager, 2);
 
         long x = company.getNumberOfEmployeesInHolidays();
         assertThat(x).isEqualTo(3);

@@ -1,23 +1,28 @@
 package com.github.glo2003.payroll;
 
+import com.github.glo2003.payroll.employees.Employee;
+import com.github.glo2003.payroll.exceptions.EmployeeDoesNotWorkHereException;
+import com.github.glo2003.payroll.exceptions.InvalidRaiseException;
+import com.github.glo2003.payroll.exceptions.NoEmployeeException;
+import com.github.glo2003.payroll.exceptions.NotEnoughHolidaysRemainingException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 public class CompanyPayroll {
     final private List<Employee> employees;
     private final List<Paycheck> pendingPaychecks;
-    private final List<Boolean> isEmployeeTakingHolidays;
 
     public CompanyPayroll() {
         employees = new ArrayList<>();
         pendingPaychecks = new ArrayList<>();
-        isEmployeeTakingHolidays = new ArrayList<>();
     }
 
     public void processPendingPaychecks() {
-        IntStream.range(0, pendingPaychecks.size()).forEach((i) -> isEmployeeTakingHolidays.set(i, false));
+        for (Employee e : employees) {
+            e.resetHasTakenHolidays();
+        }
         for (Paycheck p : pendingPaychecks) {
             System.out.println("Sending " + p.getAmount() + "$ to " + p.getTo());
         }
@@ -26,26 +31,25 @@ public class CompanyPayroll {
 
     public void addEmployee(Employee employee) {
         employees.add(employee);
-        isEmployeeTakingHolidays.add(false);
-    }
-
-    public List<Employee> findEngineers() {
-        return findByRole("engineer");
-    }
-
-    public List<Employee> findManagers() {
-        return findByRole("manager");
     }
 
     public List<Employee> findVicePresidents() {
-        return findByRole("vp");
+        return findByRole(Role.VICE_PRESIDENT);
+    }
+
+    public List<Employee> findManagers() {
+        return findByRole(Role.MANAGER);
+    }
+
+    public List<Employee> findEngineers() {
+        return findByRole(Role.ENGINEER);
     }
 
     public List<Employee> findInterns() {
-        return findByRole("intern");
+        return findByRole(Role.INTERN);
     }
 
-    private List<Employee> findByRole(String role) {
+    private List<Employee> findByRole(Role role) {
         return employees.stream()
                 .filter(e -> e.getRole().equals(role))
                 .collect(Collectors.toList());
@@ -71,92 +75,38 @@ public class CompanyPayroll {
 
     public void createPendingPaychecks() {
         for (Employee e : employees) {
-            if (e instanceof HourlyEmployee) {
-                HourlyEmployee he = (HourlyEmployee) e;
-                pendingPaychecks.add(new Paycheck(e.getName(), he.getWorkedHoursFor2Weeks() * he.getHourlyRate()));
-            } else if (e instanceof SalariedEmployee) {
-                SalariedEmployee se = (SalariedEmployee) e;
-                pendingPaychecks.add(new Paycheck(e.getName(), ((SalariedEmployee) e).getBiweeklySalary()));
-            } else {
-                throw new RuntimeException("something happened");
-            }
+            pendingPaychecks.add(new Paycheck(e.getName(), e.getPayForTwoWeeks()));
         }
     }
 
-    public void giveRaise(Employee e, float raise) {
+    public void giveRaise(Employee e, float raise) throws InvalidRaiseException, EmployeeDoesNotWorkHereException {
         if (raise < 0) {
-            throw new RuntimeException("oh no");
+            throw new InvalidRaiseException(raise);
         }
         if (!employees.contains(e)) {
-            throw new RuntimeException("not here");
+            throw new EmployeeDoesNotWorkHereException(e);
         }
-        if (e instanceof HourlyEmployee) {
-            HourlyEmployee he = (HourlyEmployee) e;
-            he.setHourlyRate(he.getHourlyRate() + raise);
-        } else if (e instanceof SalariedEmployee) {
-            SalariedEmployee se = (SalariedEmployee) e;
-            se.setBiweeklySalary(se.getBiweeklySalary() + raise);
-        } else {
-            throw new RuntimeException("something happened");
-        }
+        e.giveRaise(raise);
     }
 
-    public void takeHoliday(Employee e, boolean payout, Integer amount) {
-        // TODO this could probably be split in two methods...
+    public void takeHoliday(Employee e, int amount) throws EmployeeDoesNotWorkHereException, NotEnoughHolidaysRemainingException {
         if (!employees.contains(e)) {
-            throw new RuntimeException("not here");
+            throw new EmployeeDoesNotWorkHereException(e);
         }
-        if (payout) {
-            if (amount != null) {
-                throw new RuntimeException("bad input");
-            } else {
-                amount = 5;
-            }
-        } else {
-            if (amount == null) {
-                throw new RuntimeException("bad input");
-            }
-        }
+        e.takeHoliday(amount);
+    }
 
-        if (!payout && e.getVacationDays() < amount) {
-            throw new RuntimeException("error");
+    public void takePayout(Employee e) throws EmployeeDoesNotWorkHereException, NotEnoughHolidaysRemainingException {
+        if (!employees.contains(e)) {
+            throw new EmployeeDoesNotWorkHereException(e);
         }
-        if (e instanceof HourlyEmployee) {
-            HourlyEmployee he = (HourlyEmployee) e;
-            if (payout) {
-                pendingPaychecks.add(new Paycheck(e.getName(), ((HourlyEmployee) e).getWorkedHoursFor2Weeks() * ((HourlyEmployee) e).getHourlyRate() / 2f));
-                e.setVacationDays(e.getVacationDays() - amount);
-            } else {
-                e.setVacationDays(e.getVacationDays() - amount);
-            }
-        } else if (e instanceof SalariedEmployee) {
-            SalariedEmployee se = (SalariedEmployee) e;
-
-            if (payout) {
-                pendingPaychecks.add(new Paycheck(e.getName(), ((SalariedEmployee) e).getBiweeklySalary() / 2f));
-                e.setVacationDays(e.getVacationDays() - amount);
-            } else {
-                e.setVacationDays(e.getVacationDays() - amount);
-            }
-        } else {
-            throw new RuntimeException("something happened");
-        }
-
-        int i = employees.indexOf(e);
-        if (e instanceof HourlyEmployee) {
-            if (!isEmployeeTakingHolidays.contains(e))
-                isEmployeeTakingHolidays.set(i, true);
-        } else if (e instanceof SalariedEmployee) {
-            if (!isEmployeeTakingHolidays.contains(e))
-                isEmployeeTakingHolidays.set(i, true);
-        } else {
-            throw new RuntimeException("something happened");
-        }
+        Paycheck paycheck = new Paycheck(e.getName(), e.takePayout());
+        pendingPaychecks.add(paycheck);
     }
 
     public float getAveragePendingPaycheck() throws Exception {
         if (pendingPaychecks.size() == 0) {
-            throw new Exception("There is no employee");
+            throw new NoEmployeeException();
         }
         float totalMoney = getTotalMoney();
         return totalMoney / pendingPaychecks.size();
@@ -169,7 +119,7 @@ public class CompanyPayroll {
     }
 
     public long getNumberOfEmployeesInHolidays() {
-        return isEmployeeTakingHolidays.stream().filter(e -> e).count();
+        return employees.stream().filter(Employee::hasTakenHolidays).count();
     }
 
     public List<Paycheck> getPendings() {
