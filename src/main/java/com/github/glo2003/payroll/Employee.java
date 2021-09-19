@@ -2,14 +2,14 @@ package com.github.glo2003.payroll;
 
 
 public abstract class Employee {
-    private String name;
-    private String role;
-    private int vacation_days;
+    private final String name;
+    private final String role;
+    private int vacationDays;
 
-    public Employee(String name, String role, int vacation_days) {
+    public Employee(String name, String role, int vacationDays) {
         this.name = name;
         this.role = role;
-        this.vacation_days = vacation_days;
+        this.vacationDays = vacationDays;
     }
 
     public String getName() {
@@ -20,12 +20,12 @@ public abstract class Employee {
         return role;
     }
 
-    public int getVacation_days() {
-        return vacation_days;
+    public int getVacationDays() {
+        return vacationDays;
     }
 
-    public void setVacation_days(int vacation_days) {
-        this.vacation_days = vacation_days;
+    public void setVacationDays(int vacationDays) {
+        this.vacationDays = vacationDays;
     }
 
     @Override
@@ -33,7 +33,7 @@ public abstract class Employee {
         return "Employee{" +
                 "name='" + name + '\'' +
                 ", role='" + role + '\'' +
-                ", vacation_days=" + vacation_days +
+                ", vacationDays=" + vacationDays +
                 '}';
     }
 }
