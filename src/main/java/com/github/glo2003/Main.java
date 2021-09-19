@@ -1,9 +1,13 @@
 package com.github.glo2003;
 
 import com.github.glo2003.payroll.*;
+import com.github.glo2003.payroll.employees.ContractEmployee;
 import com.github.glo2003.payroll.employees.Employee;
 import com.github.glo2003.payroll.employees.HourlyEmployee;
 import com.github.glo2003.payroll.employees.SalariedEmployee;
+
+import java.util.LinkedList;
+import java.util.List;
 
 public class Main {
 
@@ -12,15 +16,20 @@ public class Main {
 
         Employee e1 = new HourlyEmployee("Alice", Role.VICE_PRESIDENT, 25, 100, 35.5f * 4);
         Employee e2 = new SalariedEmployee("Bob", Role.ENGINEER, 4, 1500);
-        Employee e3 = new SalariedEmployee("Charlie", Role.MANAGER, 4, 2000);
+        Employee e3 = new SalariedEmployee("Charlie", Role.MANAGER, 10, 2000);
         Employee e4 = new HourlyEmployee("Ernest", Role.INTERN, 1, 5, 50 * 4);
         Employee e5 = new HourlyEmployee("Fred", Role.INTERN, 1, 5, 50 * 4);
+        LinkedList<Float> payouts = new LinkedList<Float>() {{
+            add(100f); add(200f); add(300f);
+        }};
+        Employee e6 = new ContractEmployee("Joe", Role.MANAGER, payouts);
 
         companyPayroll.addEmployee(e1);
         companyPayroll.addEmployee(e2);
         companyPayroll.addEmployee(e3);
         companyPayroll.addEmployee(e4);
         companyPayroll.addEmployee(e5);
+        companyPayroll.addEmployee(e6);
 
         System.out.println("----- Listing employees -----");
         companyPayroll.listEmployees();
@@ -31,7 +40,7 @@ public class Main {
 
         System.out.println("\n----- Holidays -----");
         companyPayroll.takePayout(e1);
-        companyPayroll.takeHoliday(e2, 10);
+        companyPayroll.takeHoliday(e2, 1);
         companyPayroll.takePayout(e3);
         System.out.println("Number of employees in holidays: " + companyPayroll.getNumberOfEmployeesInHolidays());
 
