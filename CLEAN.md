@@ -6,7 +6,7 @@ Ce document résume les différentes étapes effectuées pour nettoyer le code f
 
 Lors de cette étape du nettoyage du code, on cherche surtout à mieux comprendre le code. 
 Pour se faire, on utilise surtout les outils automatiques de l'IDE pour modifier le code.
-Suite à ses modifications, les tests devraient encore passer sans devoir les modifier manuellement.
+Suite à ces modifications, les tests devraient encore passer sans devoir les modifier manuellement.
 On se note les changements demandant des modifications plus importantes pour la seconde phase du nettoyage, 
 le but ici étant surtout de prendre ses repères avec le code.
 
@@ -38,7 +38,7 @@ Changements apportés:
 8. Uniformiser le nommage des attributs et des méthodes au `camelCase`
    1. `find_Vice_Presidents` -> `findVicePresidents`
    2. `find_interns` -> `findInterns`
-9. Les méthodes `find*()` ont beaucoup de duplication de code
+9. Les méthodes `find*()` ont beaucoup de duplications de code
    1. Création d'une méthode privée `findByRole`
    2. Simplification de la boucle `for` avec les `stream` Java
 10. Simplification de `listEmployees`
